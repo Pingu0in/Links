@@ -1,930 +1,704 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pingu0in - Links</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pingu0in</title>
 
-  <style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-    /* ─── Reset & base ─────────────────────────────────────── */
+<style>
+:root {
+  --black: #080808;
+  --white: #f0ede8;
+  --gray: #1a1a1a;
+  --mid: #555;
+}
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: Arial, Helvetica, sans-serif;
-    }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
-    body {
-      height: 100vh;
-      background: radial-gradient(circle at top, #111 0%, #000 80%);
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-      overflow: hidden;
-    }
+body {
+  background: var(--black);
+  color: var(--white);
+  overflow: hidden;
+  cursor: none;
+}
 
+/* Custom cursor */
+.cursor {
+  position: fixed; width: 10px; height: 10px;
+  background: var(--white); border-radius: 50%;
+  pointer-events: none; z-index: 9999;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: difference;
+  transition: width 0.25s, height 0.25s;
+}
+.cursor-ring {
+  position: fixed; width: 36px; height: 36px;
+  border: 1px solid rgba(240,237,232,0.35); border-radius: 50%;
+  pointer-events: none; z-index: 9998;
+  transform: translate(-50%, -50%);
+}
+body:has(a:hover) .cursor { width: 22px; height: 22px; }
 
-    /* ─── Bureau ────────────────────────────────────────────── */
+/* Noise overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 100; opacity: 0.45;
+}
 
-    .desk {
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-      height: 30%;
-      background: linear-gradient(to top, #1a1a1a, #050505);
-      border-top: 2px solid rgba(255, 255, 255, 0.05);
-      z-index: 1;
-    }
+/* Progress */
+.progress-line {
+  position: fixed; left: 0; top: 0; width: 0%; height: 1px;
+  background: var(--white); z-index: 200; transition: width 0.1s;
+}
+.section-counter {
+  position: fixed; bottom: 36px; right: 36px;
+  font-family: 'Space Mono', monospace; font-size: 10px;
+  letter-spacing: 0.2em; opacity: 0.28; z-index: 200;
+}
 
+/* Scroll */
+main {
+  height: 100vh; overflow-y: scroll;
+  scroll-snap-type: y mandatory; scrollbar-width: none;
+}
+main::-webkit-scrollbar { display: none; }
 
-    /* ─── Lampe architecte (dessinée en JS) ─────────────────── */
+section {
+  height: 100vh; scroll-snap-align: start;
+  display: grid; place-items: center;
+  padding: 40px; position: relative; overflow: hidden;
+}
 
-    /* Le SVG couvre tout le viewport pour que les bras puissent
-       aller n'importe où sans être coupés */
-    .lamp-wrap {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-      z-index: 4;
-    }
+/* Watermark keyword */
+section::before {
+  content: attr(data-keyword);
+  position: absolute;
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: clamp(90px, 16vw, 200px);
+  color: rgba(255,255,255,0.018);
+  letter-spacing: -0.04em; pointer-events: none;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap; text-transform: uppercase;
+}
 
-    #lampSvg {
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-    }
+/* Card */
+.card {
+  width: 100%; max-width: 520px;
+  opacity: 0;
+  transform: translateY(44px) skewY(0.8deg);
+  transition: opacity 0.85s cubic-bezier(.16,1,.3,1), transform 0.85s cubic-bezier(.16,1,.3,1);
+  position: relative; z-index: 1;
+}
+.card.active { opacity: 1; transform: translateY(0) skewY(0); }
 
-    /* Halo doux positionné par JS au-dessus de la photo */
-    #lampHalo {
-      position: fixed;
-      pointer-events: none;
-      border-radius: 50%;
-      background: radial-gradient(ellipse at 50% 0%, rgba(255, 240, 140, 0.20) 0%, transparent 70%);
-      filter: blur(28px);
-      z-index: 3;
-    }
+.card-inner {
+  padding: 46px 46px 40px;
+  border: 1px solid rgba(255,255,255,0.09);
+  background: rgba(8,8,8,0.82);
+  position: relative;
+}
+.card-inner::before, .card-inner::after {
+  content: ''; position: absolute;
+  width: 18px; height: 18px;
+  border-color: rgba(255,255,255,0.28); border-style: solid;
+}
+.card-inner::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+.card-inner::after { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
 
+/* Tag */
+.tag {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  letter-spacing: 0.22em; text-transform: uppercase; opacity: 0.38;
+  margin-bottom: 24px; display: flex; align-items: center; gap: 10px;
+}
+.tag::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1); }
 
-    /* ─── Pot de fleur ──────────────────────────────────────── */
+/* Art canvas container */
+.art-wrap {
+  width: 100%; height: 260px; overflow: hidden;
+  margin-bottom: 32px; position: relative;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.art-wrap canvas {
+  width: 100% !important; height: 100% !important;
+  display: block;
+}
+.art-wrap::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(8,8,8,0.7) 100%);
+  pointer-events: none;
+}
 
-    .pot-wrap {
-      position: absolute;
-      bottom: 128px;
-      right: 60px;
-      width: 160px;
-      height: 200px;
-      z-index: 4;
-      overflow: visible;
-    }
+/* Hero avatar */
+.avatar {
+  width: 100px; height: 100px; border-radius: 50%;
+  overflow: hidden; margin-bottom: 28px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(100%); }
 
+/* Typography */
+h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(30px, 4.5vw, 44px);
+  line-height: 1.1; letter-spacing: -0.02em;
+  margin-bottom: 12px; font-weight: 400;
+}
+h1 em { font-style: italic; opacity: 0.42; }
 
-    /* ─── Lierre au plafond ─────────────────────────────────── */
+p {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; line-height: 1.85; opacity: 0.4;
+  margin-bottom: 28px; letter-spacing: 0.02em;
+}
 
-    .ivy-wrap {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 3;
-    }
+.hero-name {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: clamp(36px, 6.5vw, 56px);
+  letter-spacing: -0.03em; margin-bottom: 8px;
+}
+.hero-sub {
+  font-family: 'Space Mono', monospace; font-size: 9px;
+  letter-spacing: 0.28em; text-transform: uppercase; opacity: 0.28; margin-bottom: 0;
+}
 
-    .ivy-wrap svg {
-      width: 100%;
-      height: 100%;
-    }
+/* Button */
+.link-btn {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 14px 28px; background: transparent;
+  color: var(--white); text-decoration: none;
+  font-family: 'Space Mono', monospace; font-size: 10px;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,0.22);
+  position: relative; transition: color 0.35s; overflow: hidden;
+}
+.link-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--white); transform: translateX(-101%);
+  transition: transform 0.38s cubic-bezier(.16,1,.3,1);
+}
+.link-btn:hover { color: var(--black); }
+.link-btn:hover::before { transform: translateX(0); }
+.link-btn i, .link-btn span { position: relative; z-index: 1; }
 
-    /* Balancement doux des branches */
-    .ivy-branch {
-      transform-origin: top left;
-      animation: sway 6s ease-in-out infinite alternate;
-    }
+.divider { width: 36px; height: 1px; background: rgba(255,255,255,0.12); margin: 24px 0; }
 
-    .ivy-branch-r {
-      transform-origin: top right;
-      animation: swayR 7s ease-in-out infinite alternate;
-    }
+footer {
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  letter-spacing: 0.22em; opacity: 0.18; text-transform: uppercase;
+}
 
-    @keyframes sway {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(1.5deg); }
-    }
+/* Scroll hint */
+.scroll-hint {
+  position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+  font-family: 'Space Mono', monospace; font-size: 8px;
+  letter-spacing: 0.25em; text-transform: uppercase; opacity: 0.22;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.scroll-hint::after {
+  content: ''; width: 1px; height: 44px;
+  background: var(--white);
+  animation: scrollLine 1.6s ease-in-out infinite;
+}
+@keyframes scrollLine {
+  0% { transform: scaleY(0); transform-origin: top; }
+  50% { transform: scaleY(1); transform-origin: top; }
+  51% { transform: scaleY(1); transform-origin: bottom; }
+  100% { transform: scaleY(0); transform-origin: bottom; }
+}
 
-    @keyframes swayR {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(-1.5deg); }
-    }
+section:nth-child(even) {
+  background: repeating-linear-gradient(
+    90deg,
+    transparent, transparent calc(25% - 1px),
+    rgba(255,255,255,0.012) calc(25%), rgba(255,255,255,0.012) 25%
+  );
+}
 
-
-    /* ─── Guirlande lumineuse ───────────────────────────────── */
-
-    .garland-wrap {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      pointer-events: none;
-      z-index: 3;
-    }
-
-    .garland-wrap svg {
-      width: 100%;
-      height: 120px;
-      display: block;
-    }
-
-    .garland-wire {
-      fill: none;
-      stroke: #333;
-      stroke-width: 1.5;
-    }
-
-    /* Pulsation légère des ampoules, décalée pour un effet naturel */
-    .bulb { animation: bulbPulse 3s ease-in-out infinite alternate; }
-    .bulb:nth-child(2n) { animation-delay: 0.4s; }
-    .bulb:nth-child(3n) { animation-delay: 0.8s; }
-    .bulb:nth-child(4n) { animation-delay: 1.2s; }
-    .bulb:nth-child(5n) { animation-delay: 1.6s; }
-
-    @keyframes bulbPulse {
-      from { opacity: 0.7; }
-      to   { opacity: 1; }
-    }
-
-
-    /* ─── Laptop ────────────────────────────────────────────── */
-
-    .laptop {
-      position: relative;
-      width: 1000px;
-      max-width: 95%;
-      height: 650px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      transform: translateY(-20px);
-      z-index: 2;
-    }
-
-    /* Écran */
-    .screen {
-      width: 100%;
-      height: 550px;
-      background: #0a0a0a;
-      border-radius: 20px;
-      border: 3px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0px 30px 80px rgba(0, 0, 0, 0.8);
-      overflow: hidden;
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    /* Petite webcam */
-    .screen::before {
-      content: "";
-      position: absolute;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.15);
-      z-index: 10;
-    }
-
-    /* Base du laptop */
-    .base {
-      width: 110%;
-      height: 90px;
-      background: linear-gradient(to bottom, #1a1a1a, #0a0a0a);
-      border-radius: 0 0 30px 30px;
-      margin-top: -5px;
-      box-shadow: 0px 30px 70px rgba(0, 0, 0, 0.9);
-      border-top: 2px solid rgba(255, 255, 255, 0.1);
-      position: relative;
-    }
-
-    /* Pavé tactile cliquable */
-    .trackpad {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 160px;
-      height: 40px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      cursor: pointer;
-      transition: background 0.2s ease, border-color 0.2s ease;
-      text-decoration: none;
-      display: block;
-    }
-
-    .trackpad:hover {
-      background: rgba(255, 255, 255, 0.10);
-      border-color: rgba(255, 255, 255, 0.18);
-    }
-
-    .trackpad:active {
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-
-    /* ─── Contenu scrollable ────────────────────────────────── */
-
-    .scroll-container {
-      height: 100%;
-      width: 100%;
-      overflow-y: scroll;
-      scroll-snap-type: y mandatory;
-      scroll-behavior: smooth;
-    }
-
-    .scroll-container::-webkit-scrollbar { width: 6px; }
-    .scroll-container::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 10px;
-    }
-
-    section {
-      height: 100%;
-      scroll-snap-align: start;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 40px;
-    }
-
-    .card {
-      width: 100%;
-      max-width: 500px;
-      text-align: center;
-      color: #fff;
-    }
-
-    /* Photo de profil */
-    .avatar {
-      width: 130px;
-      height: 130px;
-      border-radius: 50%;
-      border: 3px solid rgba(255, 255, 255, 0.8);
-      margin: 0 auto 20px;
-      overflow: hidden;
-      background: #111;
-    }
-
-    .avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    h1 { font-size: 36px; margin-bottom: 15px; }
-    p  { font-size: 16px; opacity: 0.8; line-height: 1.5; }
-
-    /* Boutons de liens */
-    .link-btn {
-      margin-top: 25px;
-      width: 100%;
-      text-decoration: none;
-      color: white;
-      border: 2px solid rgba(255, 255, 255, 0.85);
-      padding: 18px 20px;
-      border-radius: 16px;
-      font-size: 20px;
-      font-weight: bold;
-      background: transparent;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      transition: 0.25s ease-in-out;
-    }
-
-    .link-btn i { font-size: 24px; }
-    .link-btn:hover { background: white; color: black; transform: scale(1.06); }
-
-    .hint   { margin-top: 35px; font-size: 14px; opacity: 0.5; }
-    footer  { font-size: 13px; opacity: 0.5; margin-top: 50px; }
-
-    /* Animation d'apparition au scroll */
-    .fade-in {
-      opacity: 0;
-      transform: translateY(35px);
-      transition: 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-
-    .fade-in.active {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-
-    /* ─── Mobile : on cache les décorations ─────────────────── */
-
-    @media (max-width: 900px) {
-      .laptop  { height: 100vh; width: 100%; transform: none; }
-      .screen  { height: 100vh; border-radius: 0; }
-      .base, .desk, .lamp-wrap, #lampHalo,
-      .garland-wrap, .ivy-wrap, .pot-wrap { display: none; }
-    }
-
-  </style>
+@media (max-width: 700px) {
+  .card-inner { padding: 30px 22px; }
+  section { padding: 18px; }
+  .section-counter, .progress-line { display: none; }
+}
+</style>
 </head>
 <body>
 
-  <!-- Bureau -->
-  <div class="desk"></div>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+<div class="progress-line" id="progressLine"></div>
+<div class="section-counter" id="sectionCounter">01 / 07</div>
 
-  <!-- ─── Lampe architecte ───────────────────────────────────
-       Le SVG est vide au départ, tout est dessiné par JS
-       pour pointer exactement au-dessus de la photo de profil -->
-  <div class="lamp-wrap">
-    <svg id="lampSvg" xmlns="http://www.w3.org/2000/svg">
-      <defs>
+<main id="main">
 
-        <!-- Lueur de l'ampoule -->
-        <filter id="glow" x="-150%" y="-150%" width="400%" height="400%">
-          <feGaussianBlur stdDeviation="6" result="blur"/>
-          <feMerge>
-            <feMergeNode in="blur"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-
-        <!-- Flou doux pour le halo sous l'abat-jour -->
-        <filter id="softBlur" x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation="10"/>
-        </filter>
-
-      </defs>
-    </svg>
-  </div>
-
-  <!-- Halo lumineux positionné par JS au-dessus de la photo -->
-  <div id="lampHalo"></div>
-
-
-  <!-- ─── Pot de fleur ──────────────────────────────────────── -->
-  <div class="pot-wrap">
-    <svg viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg" overflow="visible">
-      <defs>
-        <g id="pleaf">
-          <ellipse rx="13" ry="8" fill="#2d6b28" opacity="0.92"/>
-          <line x1="0" y1="0" x2="0" y2="8" stroke="#1a3a16" stroke-width="1"/>
-        </g>
-        <g id="pleaf-sm">
-          <ellipse rx="9" ry="6" fill="#3a8a30" opacity="0.88"/>
-          <line x1="0" y1="0" x2="0" y2="6" stroke="#1a3a16" stroke-width="0.8"/>
-        </g>
-      </defs>
-
-      <!-- Corps du pot -->
-      <path d="M38,130 L28,185 Q28,195 80,195 Q132,195 132,185 L122,130 Z"
-            fill="#5a3e2b" stroke="#3a2a1a" stroke-width="1.5"/>
-      <!-- Bord supérieur -->
-      <ellipse cx="80" cy="130" rx="42" ry="10" fill="#6b4a35" stroke="#3a2a1a" stroke-width="1.5"/>
-      <!-- Terre -->
-      <ellipse cx="80" cy="130" rx="38" ry="8" fill="#2a1a0e"/>
-      <!-- Reflet sur le pot -->
-      <path d="M42,135 L36,178 Q40,183 50,185"
-            fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3" stroke-linecap="round"/>
-
-      <!-- Tiges qui partent dans différentes directions -->
-      <path d="M80,128 C78,105 70,85 60,65"    fill="none" stroke="#2a4a20" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M80,128 C82,100 90,78 95,52"    fill="none" stroke="#2a4a20" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M80,128 C76,108 65,95 50,88"    fill="none" stroke="#2a4a20" stroke-width="2"   stroke-linecap="round"/>
-      <path d="M80,128 C84,112 100,100 115,90"  fill="none" stroke="#2a4a20" stroke-width="2"   stroke-linecap="round"/>
-
-      <!-- Feuilles gauche -->
-      <use href="#pleaf"    transform="translate(72,100) rotate(-40)"/>
-      <use href="#pleaf-sm" transform="translate(65,82)  rotate(30)"/>
-      <use href="#pleaf"    transform="translate(60,65)  rotate(-55)"/>
-      <use href="#pleaf-sm" transform="translate(54,50)  rotate(20)"/>
-
-      <!-- Feuilles droite -->
-      <use href="#pleaf"    transform="translate(88,98)  rotate(35)"/>
-      <use href="#pleaf-sm" transform="translate(92,75)  rotate(-25)"/>
-      <use href="#pleaf"    transform="translate(95,52)  rotate(50)"/>
-      <use href="#pleaf-sm" transform="translate(98,35)  rotate(-40)"/>
-
-      <!-- Feuilles branches latérales -->
-      <use href="#pleaf-sm" transform="translate(58,90)  rotate(-60)"/>
-      <use href="#pleaf"    transform="translate(50,88)  rotate(15)"/>
-      <use href="#pleaf-sm" transform="translate(108,95) rotate(55)"/>
-      <use href="#pleaf"    transform="translate(115,90) rotate(-20)"/>
-    </svg>
-  </div>
-
-
-  <!-- ─── Lierre au plafond ─────────────────────────────────── -->
-  <div class="ivy-wrap">
-    <svg viewBox="0 0 1440 900" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <g id="leaf">
-          <ellipse rx="11" ry="7" fill="#2d5a27" opacity="0.9"/>
-          <line x1="0" y1="0" x2="0" y2="7" stroke="#1a3a16" stroke-width="0.8"/>
-        </g>
-        <g id="leaf-sm">
-          <ellipse rx="8" ry="5" fill="#3a7a32" opacity="0.85"/>
-          <line x1="0" y1="0" x2="0" y2="5" stroke="#1a3a16" stroke-width="0.6"/>
-        </g>
-        <g id="leaf-lg">
-          <ellipse rx="14" ry="9" fill="#255220" opacity="0.9"/>
-          <line x1="0" y1="0" x2="0" y2="9" stroke="#1a3a16" stroke-width="1"/>
-        </g>
-      </defs>
-
-      <!-- Branche gauche verticale (tombe le long du mur) -->
-      <g class="ivy-branch">
-        <path d="M0,0 C10,60 5,120 15,180 C25,240 10,300 20,370 C30,430 15,490 25,560"
-              fill="none" stroke="#2a4a25" stroke-width="2.5" stroke-linecap="round"/>
-        <use href="#leaf"    transform="translate(18,55)  rotate(-30)"/>
-        <use href="#leaf-sm" transform="translate(8,80)   rotate(40)"/>
-        <use href="#leaf"    transform="translate(20,120) rotate(-20)"/>
-        <use href="#leaf-sm" transform="translate(6,145)  rotate(50)"/>
-        <use href="#leaf"    transform="translate(22,185) rotate(-35)"/>
-        <use href="#leaf-sm" transform="translate(10,215) rotate(30)"/>
-        <use href="#leaf"    transform="translate(18,255) rotate(-15)"/>
-        <use href="#leaf"    transform="translate(24,290) rotate(-40)"/>
-        <use href="#leaf-sm" transform="translate(8,320)  rotate(45)"/>
-        <use href="#leaf"    transform="translate(20,360) rotate(-25)"/>
-        <use href="#leaf-sm" transform="translate(12,400) rotate(35)"/>
-        <use href="#leaf"    transform="translate(22,440) rotate(-20)"/>
-        <use href="#leaf-sm" transform="translate(6,475)  rotate(55)"/>
-        <use href="#leaf"    transform="translate(18,510) rotate(-30)"/>
-        <use href="#leaf"    transform="translate(26,545) rotate(-10)"/>
-        <!-- Petites branches latérales -->
-        <path d="M14,200 C-20,215 -40,240 -30,270" fill="none" stroke="#2a4a25" stroke-width="1.8" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(-15,220) rotate(-50)"/>
-        <use href="#leaf"    transform="translate(-32,252) rotate(20)"/>
-        <path d="M18,340 C-10,355 -25,385 -15,410" fill="none" stroke="#2a4a25" stroke-width="1.8" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(-8,360)  rotate(-45)"/>
-        <use href="#leaf"    transform="translate(-18,395) rotate(25)"/>
-      </g>
-
-      <!-- Branche gauche qui part en diagonale vers la droite -->
-      <g class="ivy-branch">
-        <path d="M0,0 C30,40 60,55 100,80 C140,105 170,90 210,120 C250,150 240,180 280,200"
-              fill="none" stroke="#2a4a25" stroke-width="2" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(30,42)   rotate(20)"/>
-        <use href="#leaf"    transform="translate(65,60)   rotate(-30)"/>
-        <use href="#leaf-sm" transform="translate(105,85)  rotate(45)"/>
-        <use href="#leaf"    transform="translate(140,108) rotate(-20)"/>
-        <use href="#leaf-lg" transform="translate(175,95)  rotate(35)"/>
-        <use href="#leaf-sm" transform="translate(215,125) rotate(-40)"/>
-        <use href="#leaf"    transform="translate(250,155) rotate(15)"/>
-        <use href="#leaf-sm" transform="translate(280,200) rotate(-25)"/>
-        <!-- Petite branche tombante -->
-        <path d="M180,96 C185,120 178,145 170,165" fill="none" stroke="#2a4a25" stroke-width="1.5" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(176,122) rotate(50)"/>
-        <use href="#leaf"    transform="translate(170,162) rotate(-15)"/>
-      </g>
-
-      <!-- Grande branche centrale qui part de gauche vers le milieu -->
-      <g class="ivy-branch">
-        <path d="M0,0 C80,5 180,8 280,15 C380,22 450,12 550,20 C620,26 680,18 720,22"
-              fill="none" stroke="#2a4a25" stroke-width="2.2" stroke-linecap="round"/>
-        <use href="#leaf-lg" transform="translate(50,8)   rotate(-10)"/>
-        <use href="#leaf-sm" transform="translate(90,10)  rotate(30)"/>
-        <use href="#leaf"    transform="translate(140,12) rotate(-20)"/>
-        <use href="#leaf-sm" transform="translate(200,14) rotate(40)"/>
-        <use href="#leaf-lg" transform="translate(260,18) rotate(-15)"/>
-        <use href="#leaf"    transform="translate(320,20) rotate(25)"/>
-        <use href="#leaf-sm" transform="translate(380,16) rotate(-35)"/>
-        <use href="#leaf-lg" transform="translate(440,18) rotate(18)"/>
-        <use href="#leaf"    transform="translate(500,22) rotate(-28)"/>
-        <use href="#leaf-sm" transform="translate(560,20) rotate(42)"/>
-        <use href="#leaf-lg" transform="translate(620,22) rotate(-12)"/>
-        <use href="#leaf"    transform="translate(680,20) rotate(30)"/>
-        <use href="#leaf-sm" transform="translate(720,22) rotate(-22)"/>
-        <!-- Branches tombantes à intervalles -->
-        <path d="M150,12 C145,35 140,60 130,85" fill="none" stroke="#2a4a25" stroke-width="1.5" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(143,38) rotate(55)"/>
-        <use href="#leaf"    transform="translate(132,82) rotate(-10)"/>
-        <path d="M350,20 C348,45 342,70 335,95" fill="none" stroke="#2a4a25" stroke-width="1.5" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(345,48) rotate(48)"/>
-        <use href="#leaf"    transform="translate(336,92) rotate(-18)"/>
-        <path d="M540,20 C537,48 530,72 522,100" fill="none" stroke="#2a4a25" stroke-width="1.5" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(534,50) rotate(52)"/>
-        <use href="#leaf"    transform="translate(524,97) rotate(-12)"/>
-      </g>
-
-      <!-- Grande branche centrale qui part de droite vers le milieu -->
-      <g class="ivy-branch-r">
-        <path d="M1440,0 C1360,5 1260,8 1160,15 C1060,22 990,12 890,20 C820,26 760,18 720,22"
-              fill="none" stroke="#2a4a25" stroke-width="2.2" stroke-linecap="round"/>
-        <use href="#leaf-lg" transform="translate(1390,8)  rotate(10)"/>
-        <use href="#leaf-sm" transform="translate(1350,10) rotate(-30)"/>
-        <use href="#leaf"    transform="translate(1300,12) rotate(20)"/>
-        <use href="#leaf-sm" transform="translate(1240,14) rotate(-40)"/>
-        <use href="#leaf-lg" transform="translate(1180,18) rotate(15)"/>
-        <use href="#leaf"    transform="translate(1120,20) rotate(-25)"/>
-        <use href="#leaf-sm" transform="translate(1060,16) rotate(35)"/>
-        <use href="#leaf-lg" transform="translate(1000,18) rotate(-18)"/>
-        <use href="#leaf"    transform="translate(940,22)  rotate(28)"/>
-        <use href="#leaf-sm" transform="translate(880,20)  rotate(-42)"/>
-        <use href="#leaf-lg" transform="translate(820,22)  rotate(12)"/>
-        <use href="#leaf"    transform="translate(760,20)  rotate(-30)"/>
-        <use href="#leaf-sm" transform="translate(720,22)  rotate(22)"/>
-        <!-- Branches tombantes à intervalles -->
-        <path d="M1290,12 C1295,38 1300,62 1310,88" fill="none" stroke="#2a4a25" stroke-width="1.5" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(1297,40) rotate(-55)"/>
-        <use href="#leaf"    transform="translate(1308,85) rotate(12)"/>
-        <path d="M1090,20 C1092,46 1098,72 1105,98" fill="none" stroke="#2a4a25" stroke-width="1.5" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(1095,48) rotate(-48)"/>
-        <use href="#leaf"    transform="translate(1103,95) rotate(18)"/>
-        <path d="M900,20 C903,48 910,74 918,102" fill="none" stroke="#2a4a25" stroke-width="1.5" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(906,50) rotate(-52)"/>
-        <use href="#leaf"    transform="translate(916,99) rotate(12)"/>
-      </g>
-
-      <!-- Branche droite verticale (tombe le long du mur) -->
-      <g class="ivy-branch-r">
-        <path d="M1440,0 C1430,50 1435,110 1425,170 C1415,230 1430,290 1420,355 C1410,415 1425,470 1415,530"
-              fill="none" stroke="#2a4a25" stroke-width="2.5" stroke-linecap="round"/>
-        <use href="#leaf"    transform="translate(1422,45)  rotate(30)"/>
-        <use href="#leaf-sm" transform="translate(1432,75)  rotate(-40)"/>
-        <use href="#leaf"    transform="translate(1420,115) rotate(22)"/>
-        <use href="#leaf-sm" transform="translate(1434,145) rotate(-50)"/>
-        <use href="#leaf"    transform="translate(1418,180) rotate(35)"/>
-        <use href="#leaf-sm" transform="translate(1430,215) rotate(-28)"/>
-        <use href="#leaf"    transform="translate(1422,250) rotate(18)"/>
-        <use href="#leaf"    transform="translate(1416,288) rotate(40)"/>
-        <use href="#leaf-sm" transform="translate(1432,320) rotate(-42)"/>
-        <use href="#leaf"    transform="translate(1420,358) rotate(25)"/>
-        <use href="#leaf-sm" transform="translate(1428,395) rotate(-33)"/>
-        <use href="#leaf"    transform="translate(1418,435) rotate(20)"/>
-        <use href="#leaf-sm" transform="translate(1434,470) rotate(-55)"/>
-        <use href="#leaf"    transform="translate(1422,508) rotate(30)"/>
-        <!-- Petites branches latérales -->
-        <path d="M1426,190 C1455,205 1470,235 1460,265" fill="none" stroke="#2a4a25" stroke-width="1.8" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(1450,215) rotate(50)"/>
-        <use href="#leaf"    transform="translate(1462,250) rotate(-20)"/>
-        <path d="M1422,350 C1450,365 1462,395 1452,422" fill="none" stroke="#2a4a25" stroke-width="1.8" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(1447,372) rotate(44)"/>
-        <use href="#leaf"    transform="translate(1454,408) rotate(-24)"/>
-      </g>
-
-      <!-- Branche droite qui part en diagonale vers la gauche -->
-      <g class="ivy-branch-r">
-        <path d="M1440,0 C1410,40 1380,55 1340,80 C1300,105 1270,90 1230,120 C1190,150 1200,180 1160,200"
-              fill="none" stroke="#2a4a25" stroke-width="2" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(1410,42)  rotate(-20)"/>
-        <use href="#leaf"    transform="translate(1375,62)  rotate(30)"/>
-        <use href="#leaf-sm" transform="translate(1335,85)  rotate(-45)"/>
-        <use href="#leaf"    transform="translate(1300,108) rotate(20)"/>
-        <use href="#leaf-lg" transform="translate(1265,95)  rotate(-35)"/>
-        <use href="#leaf-sm" transform="translate(1225,125) rotate(40)"/>
-        <use href="#leaf"    transform="translate(1190,155) rotate(-15)"/>
-        <use href="#leaf-sm" transform="translate(1162,200) rotate(25)"/>
-        <!-- Petite branche tombante -->
-        <path d="M1260,96 C1255,120 1262,145 1270,165" fill="none" stroke="#2a4a25" stroke-width="1.5" stroke-linecap="round"/>
-        <use href="#leaf-sm" transform="translate(1264,122) rotate(-50)"/>
-        <use href="#leaf"    transform="translate(1270,162) rotate(15)"/>
-      </g>
-    </svg>
-  </div>
-
-
-  <!-- ─── Guirlande lumineuse ───────────────────────────────── -->
-  <div class="garland-wrap">
-    <svg viewBox="0 0 1440 120" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-
-      <!-- Fil en courbe caténaire (comme un vrai fil suspendu) -->
-      <path class="garland-wire" d="
-        M0,10 C120,10 120,70 200,65
-        C280,60 280,15 360,12
-        C440,9  440,68 520,64
-        C600,60 600,12 680,10
-        C760,8  760,66 840,62
-        C920,58 920,11 1000,9
-        C1080,7 1080,64 1160,60
-        C1240,56 1240,10 1320,8
-        C1380,7 1410,10 1440,10
-      "/>
-
-      <!-- Ampoules : halo flou + boule + fil de suspension -->
-      <g class="bulb"><circle cx="200"  cy="74" r="10" fill="rgba(255,220,80,0.15)"/><circle cx="200"  cy="68" r="4" fill="#ffd750"/><line x1="200"  y1="64" x2="200"  y2="72" stroke="#555" stroke-width="1"/></g>
-      <g class="bulb"><circle cx="360"  cy="22" r="10" fill="rgba(255,220,80,0.15)"/><circle cx="360"  cy="16" r="4" fill="#ffd750"/><line x1="360"  y1="12" x2="360"  y2="20" stroke="#555" stroke-width="1"/></g>
-      <g class="bulb"><circle cx="520"  cy="73" r="10" fill="rgba(255,220,80,0.15)"/><circle cx="520"  cy="67" r="4" fill="#ffd750"/><line x1="520"  y1="63" x2="520"  y2="71" stroke="#555" stroke-width="1"/></g>
-      <g class="bulb"><circle cx="680"  cy="20" r="10" fill="rgba(255,220,80,0.15)"/><circle cx="680"  cy="14" r="4" fill="#ffd750"/><line x1="680"  y1="10" x2="680"  y2="18" stroke="#555" stroke-width="1"/></g>
-      <g class="bulb"><circle cx="840"  cy="71" r="10" fill="rgba(255,220,80,0.15)"/><circle cx="840"  cy="65" r="4" fill="#ffd750"/><line x1="840"  y1="61" x2="840"  y2="69" stroke="#555" stroke-width="1"/></g>
-      <g class="bulb"><circle cx="1000" cy="19" r="10" fill="rgba(255,220,80,0.15)"/><circle cx="1000" cy="13" r="4" fill="#ffd750"/><line x1="1000" y1="9"  x2="1000" y2="17" stroke="#555" stroke-width="1"/></g>
-      <g class="bulb"><circle cx="1160" cy="69" r="10" fill="rgba(255,220,80,0.15)"/><circle cx="1160" cy="63" r="4" fill="#ffd750"/><line x1="1160" y1="59" x2="1160" y2="67" stroke="#555" stroke-width="1"/></g>
-      <g class="bulb"><circle cx="1320" cy="18" r="10" fill="rgba(255,220,80,0.15)"/><circle cx="1320" cy="12" r="4" fill="#ffd750"/><line x1="1320" y1="8"  x2="1320" y2="16" stroke="#555" stroke-width="1"/></g>
-    </svg>
-  </div>
-
-
-  <!-- ─── Laptop ────────────────────────────────────────────── -->
-  <div class="laptop">
-    <div class="screen">
-      <div class="scroll-container">
-
-        <!-- Page d'accueil -->
-        <section>
-          <div class="card fade-in">
-            <div class="avatar">
-              <img
-                src="https://i.pinimg.com/236x/5d/98/e1/5d98e1f50ecd12004269fbfa0ada2a9d.jpg"
-                alt="Photo de profil de Pingu0in"
-                onerror="this.style.display='none'"
-              >
-            </div>
-            <h1>@Pingu0in</h1>
-            <p>Welcome to my Linktree 👇</p>
-            <div class="hint">Scroll to see my social links</div>
-          </div>
-        </section>
-
-        <!-- Instagram -->
-        <section>
-          <div class="card fade-in">
-            <h1>Instagram</h1>
-            <p>Photos, stories, and daily content.</p>
-            <a class="link-btn" href="https://www.instagram.com/pingu0in/" target="_blank">
-              <i class="fa-brands fa-instagram"></i> Instagram
-            </a>
-          </div>
-        </section>
-
-        <!-- TikTok -->
-        <section>
-          <div class="card fade-in">
-            <h1>TikTok</h1>
-            <p>Short videos, trends, and fun content.</p>
-            <a class="link-btn" href="https://www.tiktok.com/@pingu0in" target="_blank">
-              <i class="fa-brands fa-tiktok"></i> TikTok
-            </a>
-          </div>
-        </section>
-
-        <!-- GitHub -->
-        <section>
-          <div class="card fade-in">
-            <h1>GitHub</h1>
-            <p>My coding projects and repositories.</p>
-            <a class="link-btn" href="https://github.com/Pingu0in" target="_blank">
-              <i class="fa-brands fa-github"></i> GitHub
-            </a>
-          </div>
-        </section>
-
-        <!-- Twitter / X -->
-        <section>
-          <div class="card fade-in">
-            <h1>Twitter</h1>
-            <p>Quick posts, news, opinions, and discussions.</p>
-            <a class="link-btn" href="https://x.com/Pingu01n" target="_blank">
-              <i class="fa-brands fa-x-twitter"></i> Twitter
-            </a>
-          </div>
-        </section>
-
-        <!-- Twitch -->
-        <section>
-          <div class="card fade-in">
-            <h1>Twitch</h1>
-            <p>Live streams, gaming, and chill.</p>
-            <a class="link-btn" href="https://www.twitch.tv/p1ngu0in" target="_blank">
-              <i class="fa-brands fa-twitch"></i> Twitch
-            </a>
-          </div>
-        </section>
-
-        <!-- Discord -->
-        <section>
-          <div class="card fade-in">
-            <h1>Discord</h1>
-            <p>Join the community to chat and follow updates.</p>
-            <a class="link-btn" href="https://discord.gg/KqrXm5gd79" target="_blank">
-              <i class="fa-brands fa-discord"></i> Discord
-            </a>
-            <footer>© 2026 - Pingu0in</footer>
-          </div>
-        </section>
-
+<!-- HERO -->
+<section data-keyword="Minimal">
+  <div class="card">
+    <div class="card-inner">
+      <div class="tag">Est. 2026 — social medias</div>
+      <div style="display:flex;align-items:center;gap:22px;margin-bottom:24px;">
+        <div class="avatar">
+          <img src="https://i.pinimg.com/236x/5d/98/e1/5d98e1f50ecd12004269fbfa0ada2a9d.jpg" alt="Pingu0in">
+        </div>
+        <div>
+          <div class="hero-name">@Pingu0in</div>
+          <p class="hero-sub" style="margin-bottom:0;">Just a random developer</p>
+        </div>
       </div>
-    </div>
-    <div class="base">
-      <a
-        class="trackpad"
-        href="https://www.youtube.com/watch?v=oHg5SJYRHA0&list=RDoHg5SJYRHA0&start_radio=1"
-        target="_blank"
-        title="Cliquez ici 🎵"
-      ></a>
+      <div class="divider"></div>
+      <p>Content creator · Developer · NTL · Chill · Korean</p>
     </div>
   </div>
+  <div class="scroll-hint">Scroll</div>
+</section>
 
+<!-- INSTAGRAM -->
+<section data-keyword="Visual">
+  <div class="card">
+    <div class="card-inner">
+      <div class="tag">01 — Social</div>
+      <div class="art-wrap" id="art-instagram"></div>
+      <h1>Insta<em>gram</em></h1>
+      <p>Photos, stories &amp; aesthetic content.<br>The visual archive.</p>
+      <a class="link-btn" href="https://www.instagram.com/pingu0in/" target="_blank">
+        <i class="fab fa-instagram"></i><span>Open Instagram</span>
+      </a>
+    </div>
+  </div>
+</section>
 
-  <script>
+<!-- TIKTOK -->
+<section data-keyword="Motion">
+  <div class="card">
+    <div class="card-inner">
+      <div class="tag">02 — Video</div>
+      <div class="art-wrap" id="art-tiktok"></div>
+      <h1>Tik<em>Tok</em></h1>
+      <p>Short creative videos &amp; trends.<br>Motion in its rawest form.</p>
+      <a class="link-btn" href="https://www.tiktok.com/@pingu0in" target="_blank">
+        <i class="fab fa-tiktok"></i><span>Open TikTok</span>
+      </a>
+    </div>
+  </div>
+</section>
 
-    // ─── Apparition des cartes au scroll ──────────────────────
+<!-- GITHUB -->
+<section data-keyword="Code">
+  <div class="card">
+    <div class="card-inner">
+      <div class="tag">03 — Dev</div>
+      <div class="art-wrap" id="art-github"></div>
+      <h1>Git<em>Hub</em></h1>
+      <p>Coding projects &amp; experiments.<br>Open source, open mind.</p>
+      <a class="link-btn" href="https://github.com/Pingu0in" target="_blank">
+        <i class="fab fa-github"></i><span>Open GitHub</span>
+      </a>
+    </div>
+  </div>
+</section>
 
-    const cards = document.querySelectorAll(".fade-in");
-    const fadeObserver = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) entry.target.classList.add("active");
-      });
-    }, { threshold: 0.6 });
-    cards.forEach(card => fadeObserver.observe(card));
+<!-- TWITTER -->
+<section data-keyword="Thoughts">
+  <div class="card">
+    <div class="card-inner">
+      <div class="tag">04 — Text</div>
+      <div class="art-wrap" id="art-twitter"></div>
+      <h1>Twit<em>ter</em></h1>
+      <p>News, thoughts &amp; discussions.<br>Unfiltered, unedited.</p>
+      <a class="link-btn" href="https://x.com/Pingu01n" target="_blank">
+        <i class="fa-brands fa-x-twitter"></i><span>Open Twitter</span>
+      </a>
+    </div>
+  </div>
+</section>
 
+<!-- TWITCH -->
+<section data-keyword="Live">
+  <div class="card">
+    <div class="card-inner">
+      <div class="tag">05 — Stream</div>
+      <div class="art-wrap" id="art-twitch"></div>
+      <h1>Twit<em>ch</em></h1>
+      <p>Gaming &amp; live streams.<br>See you in the chat.</p>
+      <a class="link-btn" href="https://www.twitch.tv/p1ngu0in" target="_blank">
+        <i class="fab fa-twitch"></i><span>Open Twitch</span>
+      </a>
+    </div>
+  </div>
+</section>
 
-    // ─── Lampe architecte dynamique ───────────────────────────
-    //
-    // On dessine la lampe entièrement en JS pour qu'elle pointe
-    // précisément au-dessus de la photo de profil, quelle que
-    // soit la taille de la fenêtre.
+<!-- DISCORD -->
+<section data-keyword="Community">
+  <div class="card">
+    <div class="card-inner">
+      <div class="tag">06 — Community</div>
+      <div class="art-wrap" id="art-discord"></div>
+      <h1>Dis<em>cord</em></h1>
+      <p>Join the community.<br>Real connections, real talk.</p>
+      <a class="link-btn" href="https://discord.gg/KqrXm5gd79" target="_blank">
+        <i class="fab fa-discord"></i><span>Join Discord</span>
+      </a>
+      <div class="divider"></div>
+      <footer>© 2026 — Pingu0in · Anti-Design Universe</footer>
+    </div>
+  </div>
+</section>
 
-    const svg  = document.getElementById("lampSvg");
-    const halo = document.getElementById("lampHalo");
+</main>
 
-    // Helper : crée un élément SVG avec ses attributs en une ligne
-    function svgEl(tag, attrs) {
-      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
-      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
-      el.setAttribute("class", "lamp-el");
-      svg.appendChild(el);
-      return el;
+<script>
+// ─── CURSOR ───────────────────────────────────────────────────────────────────
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursorRing');
+let mx = 0, my = 0, rx = 0, ry = 0;
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; cursor.style.left = mx+'px'; cursor.style.top = my+'px'; });
+(function animRing() { rx += (mx - rx) * 0.11; ry += (my - ry) * 0.11; ring.style.left = rx+'px'; ring.style.top = ry+'px'; requestAnimationFrame(animRing); })();
+
+// ─── SCROLL ───────────────────────────────────────────────────────────────────
+const mainEl = document.getElementById('main');
+const sections = document.querySelectorAll('section');
+const pLine = document.getElementById('progressLine');
+const sCtr = document.getElementById('sectionCounter');
+const total = sections.length;
+
+mainEl.addEventListener('scroll', () => {
+  const pct = (mainEl.scrollTop / (mainEl.scrollHeight - mainEl.clientHeight)) * 100;
+  pLine.style.width = pct + '%';
+  let cur = 0;
+  sections.forEach((s, i) => { if (s.getBoundingClientRect().top <= window.innerHeight / 2) cur = i; });
+  sCtr.textContent = String(cur+1).padStart(2,'0') + ' / ' + String(total).padStart(2,'0');
+});
+
+// ─── CARD REVEAL ─────────────────────────────────────────────────────────────
+const cards = document.querySelectorAll('.card');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); });
+}, { threshold: 0.3 });
+cards.forEach(c => obs.observe(c));
+
+// ─── P5.JS GENERATIVE ARTS ───────────────────────────────────────────────────
+
+// Helper: create a p5 sketch inside a container
+function makeSketch(containerId, sketchFn) {
+  new p5(sketchFn, document.getElementById(containerId));
+}
+
+// ── ART 1 · INSTAGRAM · "Shattered Grid"
+// Broken grid of rectangles, some filled, some hollow, with scattered dots — anti-design tension
+makeSketch('art-instagram', function(p) {
+  p.setup = function() {
+    let c = p.createCanvas(430, 260); c.style('width','100%'); c.style('height','100%');
+    p.randomSeed(42); p.noiseSeed(42);
+    p.noLoop();
+  };
+  p.draw = function() {
+    p.background(8);
+    let cols = 9, rows = 6;
+    let cw = p.width / cols, ch = p.height / rows;
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        let x = i * cw, y = j * ch;
+        let r = p.random();
+        let bri = p.map(p.noise(i * 0.4, j * 0.4), 0, 1, 18, 200);
+        p.strokeWeight(0.4);
+        p.stroke(bri * 0.6);
+        if (r < 0.18) {
+          p.fill(bri * 0.9);
+          p.noStroke();
+          p.rect(x + 2, y + 2, cw - 4, ch - 4);
+        } else if (r < 0.35) {
+          p.fill(0,0);
+          p.stroke(bri * 0.5);
+          p.strokeWeight(0.5);
+          p.rect(x + 4, y + 4, cw - 8, ch - 8);
+        } else if (r < 0.45) {
+          p.stroke(bri);
+          p.strokeWeight(0.3);
+          p.noFill();
+          p.ellipse(x + cw/2, y + ch/2, cw * 0.55, ch * 0.55);
+        } else if (r < 0.5) {
+          p.stroke(bri);
+          p.strokeWeight(0.3);
+          p.line(x, y, x + cw, y + ch);
+        }
+      }
     }
-
-    function drawLamp() {
-      const avatar = document.querySelector(".avatar");
-      if (!avatar) return;
-
-      // On repart de zéro à chaque redimensionnement
-      svg.querySelectorAll(".lamp-el").forEach(el => el.remove());
-      svg.querySelectorAll("defs .dynamic").forEach(el => el.remove());
-
-      // Position de la photo de profil dans la page
-      const avatarRect    = avatar.getBoundingClientRect();
-      const avatarCenterX = avatarRect.left + avatarRect.width / 2;
-      const avatarTop     = avatarRect.top;
-
-      // L'abat-jour se place un peu au-dessus de la photo
-      const headX = avatarCenterX;
-      const headY = avatarTop - 110;
-
-      // La base de la lampe est en bas à gauche (posée sur le bureau)
-      const baseX    = 90;
-      const baseY    = window.innerHeight - 80;
-      const poleTopY = baseY - 280; // haut de la tige verticale
-
-      // Point intermédiaire pour l'articulation du milieu
-      const midX = (baseX + headX) * 0.42 + 30;
-      const midY = Math.min(poleTopY, headY) - 60;
-
-
-      // — Structure métallique —
-
-      // Base lestée (socle + collerette)
-      svgEl("ellipse", { cx: baseX, cy: baseY + 10, rx: 58, ry: 11, fill: "#1a1a1a", stroke: "#444", "stroke-width": "1.5" });
-      svgEl("rect",    { x: baseX - 14, y: baseY - 30, width: 28, height: 42, rx: 7, fill: "#2a2a2a", stroke: "#555", "stroke-width": "1.5" });
-
-      // Tige verticale
-      svgEl("line", { x1: baseX, y1: baseY - 28, x2: baseX, y2: poleTopY, stroke: "#555", "stroke-width": "7", "stroke-linecap": "round" });
-
-      // Articulation basse
-      svgEl("circle", { cx: baseX, cy: poleTopY, r: 10, fill: "#444", stroke: "#666", "stroke-width": "2" });
-
-      // Premier bras (de la tige vers le point intermédiaire)
-      svgEl("line", { x1: baseX, y1: poleTopY, x2: midX, y2: midY, stroke: "#555", "stroke-width": "6", "stroke-linecap": "round" });
-
-      // Articulation milieu
-      svgEl("circle", { cx: midX, cy: midY, r: 9, fill: "#444", stroke: "#666", "stroke-width": "2" });
-
-      // Deuxième bras (du milieu vers l'abat-jour)
-      const colEndX = headX;
-      const colEndY = headY + 40;
-      svgEl("line", { x1: midX, y1: midY, x2: colEndX, y2: colEndY, stroke: "#555", "stroke-width": "5.5", "stroke-linecap": "round" });
-
-      // Articulation haute
-      svgEl("circle", { cx: colEndX, cy: colEndY, r: 9, fill: "#444", stroke: "#666", "stroke-width": "2" });
-
-      // Col terminal (le petit bout qui porte l'abat-jour)
-      svgEl("line", { x1: colEndX, y1: colEndY, x2: headX, y2: headY + 10, stroke: "#555", "stroke-width": "5", "stroke-linecap": "round" });
-
-
-      // — Faisceau lumineux naturel —
-
-      const defs      = svg.querySelector("defs");
-      const screen    = document.querySelector(".screen");
-      const screenRect = screen ? screen.getBoundingClientRect() : null;
-
-      const beamTipX   = headX;
-      const beamTipY   = headY + 56 + 13; // juste en dessous de l'abat-jour
-      const beamWidth  = screenRect ? screenRect.width * 0.82 : 700;
-      const beamBottom = screenRect ? screenRect.bottom - 10 : beamTipY + 600;
-      const beamLeft   = beamTipX - beamWidth / 2;
-      const beamRight  = beamTipX + beamWidth / 2;
-
-      // Gradient vertical : chaud en haut, transparent en bas
-      const gradId = "beamGrad_" + Date.now();
-      const grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
-      grad.setAttribute("id", gradId);
-      grad.setAttribute("class", "dynamic");
-      grad.setAttribute("x1", "0%"); grad.setAttribute("y1", "0%");
-      grad.setAttribute("x2", "0%"); grad.setAttribute("y2", "100%");
-      const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-      stop1.setAttribute("offset", "0%");   stop1.setAttribute("stop-color", "rgba(255,245,150,0.18)");
-      const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-      stop2.setAttribute("offset", "100%"); stop2.setAttribute("stop-color", "rgba(255,240,130,0)");
-      grad.appendChild(stop1);
-      grad.appendChild(stop2);
-      defs.appendChild(grad);
-
-      // Filtre de flou pour adoucir les bords du faisceau
-      const blurId = "beamBlur_" + Date.now();
-      const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
-      filter.setAttribute("id", blurId);
-      filter.setAttribute("class", "dynamic");
-      filter.setAttribute("x", "-30%"); filter.setAttribute("y", "-10%");
-      filter.setAttribute("width", "160%"); filter.setAttribute("height", "120%");
-      const blur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
-      blur.setAttribute("stdDeviation", "22");
-      filter.appendChild(blur);
-      defs.appendChild(filter);
-
-      // Faisceau principal (bords flous grâce au filtre)
-      svgEl("polygon", {
-        points: `${beamTipX},${beamTipY} ${beamLeft},${beamBottom} ${beamRight},${beamBottom}`,
-        fill: `url(#${gradId})`,
-        filter: `url(#${blurId})`,
-      });
-
-      // Lueur centrale plus intense superposée au faisceau
-      const centerGradId = "centerGrad_" + Date.now();
-      const cGrad = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
-      cGrad.setAttribute("id", centerGradId);
-      cGrad.setAttribute("class", "dynamic");
-      cGrad.setAttribute("cx", "50%"); cGrad.setAttribute("cy", "20%"); cGrad.setAttribute("r", "50%");
-      const cs1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-      cs1.setAttribute("offset", "0%");   cs1.setAttribute("stop-color", "rgba(255,248,180,0.13)");
-      const cs2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-      cs2.setAttribute("offset", "100%"); cs2.setAttribute("stop-color", "rgba(255,245,150,0)");
-      cGrad.appendChild(cs1);
-      cGrad.appendChild(cs2);
-      defs.appendChild(cGrad);
-
-      svgEl("polygon", {
-        points: `${beamTipX},${beamTipY} ${beamTipX - beamWidth * 0.35},${beamBottom} ${beamTipX + beamWidth * 0.35},${beamBottom}`,
-        fill: `url(#${centerGradId})`,
-        filter: `url(#${blurId})`,
-      });
-
-
-      // — Abat-jour —
-
-      const hw = 68; // demi-largeur
-      const hh = 56; // hauteur
-
-      // Corps (trapèze)
-      svgEl("polygon", {
-        points: `${headX - hw * 0.6},${headY} ${headX + hw * 0.6},${headY} ${headX + hw},${headY + hh} ${headX - hw},${headY + hh}`,
-        fill: "#3a3a3a", stroke: "#666", "stroke-width": "2"
-      });
-      // Bord inférieur arrondi
-      svgEl("ellipse", { cx: headX, cy: headY + hh, rx: hw, ry: 13, fill: "#2a2a2a", stroke: "#666", "stroke-width": "1.5" });
-      // Reflet intérieur chaud
-      svgEl("polygon", {
-        points: `${headX - hw * 0.5},${headY + 6} ${headX + hw * 0.5},${headY + 6} ${headX + hw * 0.85},${headY + hh - 4} ${headX - hw * 0.85},${headY + hh - 4}`,
-        fill: "rgba(255,240,160,0.07)"
-      });
-      // Ampoule visible
-      svgEl("circle", { cx: headX, cy: headY + hh * 0.5, r: 9, fill: "rgba(255,245,160,0.85)", filter: "url(#glow)" });
-      // Halo immédiat sous l'abat-jour
-      svgEl("ellipse", { cx: headX, cy: headY + hh + 8, rx: hw + 6, ry: 14, fill: "rgba(255,240,140,0.22)", filter: "url(#softBlur)" });
-
-
-      // — Halo CSS sur la photo de profil —
-
-      const haloW = 340;
-      const haloH = 180;
-      halo.style.left   = (avatarCenterX - haloW / 2) + "px";
-      halo.style.top    = (headY - 20) + "px";
-      halo.style.width  = haloW + "px";
-      halo.style.height = haloH + "px";
+    // Scattered noise dots
+    for (let k = 0; k < 280; k++) {
+      let px = p.random(p.width), py = p.random(p.height);
+      let n = p.noise(px * 0.01, py * 0.01);
+      let a = p.map(n, 0, 1, 10, 120);
+      p.stroke(a);
+      p.strokeWeight(p.random(0.5, 1.5));
+      p.point(px, py);
     }
+    // Thin horizontal scan lines
+    p.strokeWeight(0.2);
+    for (let y = 0; y < p.height; y += 4) {
+      let a = p.map(p.noise(y * 0.05), 0, 1, 4, 22);
+      p.stroke(255, a);
+      p.line(0, y, p.width, y);
+    }
+  };
+});
 
-    // Dessine au chargement et à chaque redimensionnement
-    window.addEventListener("load",   drawLamp);
-    window.addEventListener("resize", drawLamp);
-    setTimeout(drawLamp, 100); // petite sécurité pour que le layout soit bien stabilisé
+// ── ART 2 · TIKTOK · "Vertical Frequencies"
+// Vertical bars with varying noise-driven heights — rhythm, pulse, motion
+makeSketch('art-tiktok', function(p) {
+  p.setup = function() {
+    let c = p.createCanvas(430, 260); c.style('width','100%'); c.style('height','100%');
+    p.randomSeed(77); p.noiseSeed(77);
+    p.noLoop();
+  };
+  p.draw = function() {
+    p.background(8);
+    let bars = 60;
+    let bw = p.width / bars;
+    for (let i = 0; i < bars; i++) {
+      let n1 = p.noise(i * 0.12, 0);
+      let n2 = p.noise(i * 0.07, 1.5);
+      let h1 = p.map(n1, 0, 1, 8, p.height * 0.88);
+      let h2 = p.map(n2, 0, 1, 4, p.height * 0.5);
+      let bri = p.map(n1, 0, 1, 35, 210);
+      let x = i * bw;
+      // Main bar
+      p.noStroke();
+      p.fill(bri * 0.85);
+      p.rect(x + 1, p.height - h1, bw - 2, h1);
+      // Reflection (mirrored top, faded)
+      p.fill(bri * 0.12);
+      p.rect(x + 1, 0, bw - 2, h2);
+      // Thin accent line
+      if (p.random() < 0.3) {
+        p.stroke(255, 30);
+        p.strokeWeight(0.3);
+        p.line(x + bw/2, p.height - h1 - 4, x + bw/2, 0);
+      }
+    }
+    // Horizontal rule at mid
+    p.stroke(255, 18);
+    p.strokeWeight(0.5);
+    p.line(0, p.height/2, p.width, p.height/2);
+    // Noise static
+    for (let k = 0; k < 200; k++) {
+      let px = p.random(p.width), py = p.random(p.height);
+      p.stroke(p.random(60, 180), p.random(15, 40));
+      p.strokeWeight(p.random(0.4,1));
+      p.point(px, py);
+    }
+  };
+});
 
-  </script>
+// ── ART 3 · GITHUB · "Recursive Branches"
+// Branching L-system tree, sterile & geometric — code as nature
+makeSketch('art-github', function(p) {
+  p.setup = function() {
+    let c = p.createCanvas(430, 260); c.style('width','100%'); c.style('height','100%');
+    p.randomSeed(13); p.noiseSeed(13);
+    p.noLoop();
+  };
+  function branch(x, y, angle, len, depth) {
+    if (depth <= 0 || len < 2) return;
+    let x2 = x + p.cos(p.radians(angle)) * len;
+    let y2 = y + p.sin(p.radians(angle)) * len;
+    let bri = p.map(depth, 0, 9, 20, 160);
+    let sw = p.map(depth, 0, 9, 0.2, 1.2);
+    p.stroke(bri);
+    p.strokeWeight(sw);
+    p.line(x, y, x2, y2);
+    let spread = p.map(p.noise(depth * 0.3), 0, 1, 18, 32);
+    let shrink = p.random(0.62, 0.72);
+    branch(x2, y2, angle - spread, len * shrink, depth - 1);
+    branch(x2, y2, angle + spread, len * shrink, depth - 1);
+  }
+  p.draw = function() {
+    p.background(8);
+    // Multiple small trees
+    let origins = [[p.width*0.25, p.height], [p.width*0.5, p.height], [p.width*0.75, p.height]];
+    let lens = [55, 70, 55];
+    origins.forEach((o, idx) => {
+      p.randomSeed(idx * 17 + 13); p.noiseSeed(idx * 17 + 13);
+      branch(o[0], o[1], -90, lens[idx], 9);
+    });
+    // Thin horizontal lines (ground)
+    p.strokeWeight(0.3);
+    for (let y = p.height - 12; y < p.height; y += 3) {
+      p.stroke(255, 12);
+      p.line(0, y, p.width, y);
+    }
+    // Floating dots (commits)
+    for (let k = 0; k < 120; k++) {
+      let px = p.random(p.width), py = p.random(p.height * 0.8);
+      let n = p.noise(px * 0.008, py * 0.008);
+      if (n > 0.52) {
+        p.stroke(p.random(80,180));
+        p.strokeWeight(p.random(0.6, 1.8));
+        p.point(px, py);
+      }
+    }
+  };
+});
+
+// ── ART 4 · TWITTER · "Typographic Chaos"
+// Dense overlapping text fragments and glyphs — words dissolving into texture
+makeSketch('art-twitter', function(p) {
+  p.setup = function() {
+    let c = p.createCanvas(430, 260); c.style('width','100%'); c.style('height','100%');
+    p.randomSeed(99); p.noiseSeed(99);
+    p.noLoop();
+  };
+  p.draw = function() {
+    p.background(8);
+    let glyphs = ['#','@','_','—','·','*','≠','∞','⌘','//','{}','<>','01','10','→','↑','≡'];
+    p.textAlign(p.CENTER, p.CENTER);
+    for (let k = 0; k < 220; k++) {
+      let px = p.random(p.width), py = p.random(p.height);
+      let n = p.noise(px * 0.009, py * 0.009);
+      let sz = p.map(n, 0, 1, 7, 36);
+      let bri = p.map(n, 0, 1, 14, 170);
+      let a = p.map(p.noise(px * 0.02, py * 0.02 + 5), 0, 1, 30, 200);
+      p.fill(bri, a);
+      p.noStroke();
+      p.textSize(sz);
+      p.push();
+      p.translate(px, py);
+      p.rotate(p.radians(p.random(-12, 12)));
+      p.text(p.random(glyphs), 0, 0);
+      p.pop();
+    }
+    // A few bigger anchor glyphs
+    ['#', '@', '//'].forEach((g, i) => {
+      let px = (i+1) * p.width / 4;
+      let py = p.height / 2 + p.sin(i) * 30;
+      p.fill(255, 8);
+      p.textSize(80);
+      p.text(g, px, py);
+    });
+    // Scanlines
+    p.strokeWeight(0.2);
+    for (let y = 0; y < p.height; y += 3) {
+      p.stroke(255, 6);
+      p.line(0, y, p.width, y);
+    }
+  };
+});
+
+// ── ART 5 · TWITCH · "Signal Interference"
+// Horizontal noise waves with glitch offsets — live transmission artifacts
+makeSketch('art-twitch', function(p) {
+  p.setup = function() {
+    let c = p.createCanvas(430, 260); c.style('width','100%'); c.style('height','100%');
+    p.randomSeed(55); p.noiseSeed(55);
+    p.noLoop();
+  };
+  p.draw = function() {
+    p.background(8);
+    // Noise wave lines
+    for (let y = 0; y < p.height; y += 2) {
+      let t = y / p.height;
+      let amplitude = p.map(p.noise(t * 3, 0), 0, 1, 4, 55);
+      let freq = p.map(p.noise(t * 2, 2), 0, 1, 0.015, 0.07);
+      let bri = p.map(p.noise(t * 4, 4), 0, 1, 18, 180);
+      p.stroke(bri);
+      p.strokeWeight(p.random(0.3, 0.8));
+      p.noFill();
+      p.beginShape();
+      for (let x = 0; x <= p.width; x += 3) {
+        let nx = p.noise(x * freq, t * 2 + 0.5) * 2 - 1;
+        p.vertex(x, y + nx * amplitude);
+      }
+      p.endShape();
+    }
+    // Glitch blocks
+    for (let k = 0; k < 14; k++) {
+      let gx = p.random(p.width * 0.1, p.width * 0.9);
+      let gy = p.random(p.height);
+      let gw = p.random(20, 100);
+      let gh = p.random(1, 5);
+      let shift = p.random(-15, 15);
+      p.noStroke();
+      p.fill(p.random(60, 200), p.random(40, 100));
+      p.rect(gx + shift, gy, gw, gh);
+    }
+    // CRT vignette
+    for (let r = 0; r < 30; r++) {
+      let a = p.map(r, 0, 30, 0, 35);
+      p.noFill();
+      p.stroke(0, a);
+      p.strokeWeight(12);
+      p.rect(r * 3, r * 2, p.width - r * 6, p.height - r * 4);
+    }
+  };
+});
+
+// ── ART 6 · DISCORD · "Particle Field — Connection"
+// Dots connected by threads when close — network, community, proximity
+makeSketch('art-discord', function(p) {
+  let pts = [];
+  p.setup = function() {
+    let c = p.createCanvas(430, 260); c.style('width','100%'); c.style('height','100%');
+    p.randomSeed(31); p.noiseSeed(31);
+    // Generate points
+    for (let k = 0; k < 80; k++) {
+      let angle = p.random(p.TWO_PI);
+      let r = p.sqrt(p.random()) * Math.min(p.width, p.height) * 0.48;
+      pts.push({
+        x: p.width/2 + p.cos(angle) * r,
+        y: p.height/2 + p.sin(angle) * r,
+        s: p.random(1, 3)
+      });
+    }
+    p.noLoop();
+  };
+  p.draw = function() {
+    p.background(8);
+    // Connections
+    let maxDist = 72;
+    for (let i = 0; i < pts.length; i++) {
+      for (let j = i + 1; j < pts.length; j++) {
+        let d = p.dist(pts[i].x, pts[i].y, pts[j].x, pts[j].y);
+        if (d < maxDist) {
+          let a = p.map(d, 0, maxDist, 60, 0);
+          p.stroke(180, a);
+          p.strokeWeight(0.4);
+          p.line(pts[i].x, pts[i].y, pts[j].x, pts[j].y);
+        }
+      }
+    }
+    // Points
+    pts.forEach(pt => {
+      let n = p.noise(pt.x * 0.01, pt.y * 0.01);
+      let bri = p.map(n, 0, 1, 80, 230);
+      p.fill(bri);
+      p.noStroke();
+      p.ellipse(pt.x, pt.y, pt.s * 2, pt.s * 2);
+    });
+    // Faint radial center glow
+    for (let r = p.height * 0.6; r > 0; r -= 6) {
+      let a = p.map(r, 0, p.height * 0.6, 8, 0);
+      p.noStroke();
+      p.fill(255, a);
+      p.ellipse(p.width/2, p.height/2, r, r);
+    }
+    // Concentric rings
+    p.noFill();
+    for (let r = 30; r < p.height * 0.8; r += 40) {
+      p.stroke(255, 5);
+      p.strokeWeight(0.5);
+      p.ellipse(p.width/2, p.height/2, r, r);
+    }
+  };
+});
+
+</script>
 </body>
 </html>
