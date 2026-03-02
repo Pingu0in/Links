@@ -244,18 +244,18 @@ section:nth-child(even) {
 <section data-keyword="Minimal">
   <div class="card">
     <div class="card-inner">
-      <div class="tag">Est. 2026 — social medias</div>
+      <div class="tag">Est. 2024 — Portfolio</div>
       <div style="display:flex;align-items:center;gap:22px;margin-bottom:24px;">
         <div class="avatar">
           <img src="https://i.pinimg.com/236x/5d/98/e1/5d98e1f50ecd12004269fbfa0ada2a9d.jpg" alt="Pingu0in">
         </div>
         <div>
           <div class="hero-name">@Pingu0in</div>
-          <p class="hero-sub" style="margin-bottom:0;">Just a random developer</p>
+          <p class="hero-sub" style="margin-bottom:0;">Creative anti-design universe</p>
         </div>
       </div>
       <div class="divider"></div>
-      <p>Content creator · Developer · NTL · Chill · Korean</p>
+      <p>Anti-design · Pinterest · Minimalist · Digital · Black &amp; White</p>
     </div>
   </div>
   <div class="scroll-hint">Scroll</div>
@@ -335,7 +335,22 @@ section:nth-child(even) {
     </div>
   </div>
 </section>
-
+  
+<!-- YOUTUBE -->
+<section data-keyword="Cinema">
+  <div class="card">
+    <div class="card-inner">
+      <div class="tag">07 — Media</div>
+      <div class="art-wrap" id="art-youtube"></div>
+      <h1>You<em>Tube</em></h1>
+      <p>Long form videos &amp; creative content.<br>Extended visual universe.</p>
+      <a class="link-btn" href="https://www.youtube.com/@Chae_J1n" target="_blank">
+        <i class="fab fa-youtube"></i><span>Open YouTube</span>
+      </a>
+    </div>
+  </div>
+</section>
+  
 <!-- DISCORD -->
 <section data-keyword="Community">
   <div class="card">
@@ -348,7 +363,7 @@ section:nth-child(even) {
         <i class="fab fa-discord"></i><span>Join Discord</span>
       </a>
       <div class="divider"></div>
-      <footer>© 2026 — Pingu0in</footer>
+      <footer>© 2026 — Pingu0in · Anti-Design Universe</footer>
     </div>
   </div>
 </section>
@@ -639,7 +654,42 @@ makeSketch('art-twitch', function(p) {
     }
   };
 });
+  
+// ── ART 7 · YOUTUBE
+makeSketch('art-youtube', function(p) {
+  p.setup = function() {
+    let c = p.createCanvas(430, 260); 
+    c.style('width','100%'); 
+    c.style('height','100%');
+    p.randomSeed(101); 
+    p.noiseSeed(101);
+    p.noLoop();
+  };
 
+  p.draw = function() {
+    p.background(8);
+
+    // Horizontal bars (cinematic feel)
+    for (let i = 0; i < 14; i++) {
+      let y = i * (p.height / 14);
+      let h = p.random(6, 24);
+      let bri = p.map(p.noise(i * 0.3), 0, 1, 30, 200);
+      p.noStroke();
+      p.fill(bri);
+      p.rect(0, y, p.width, h);
+    }
+
+    // Film grain
+    for (let k = 0; k < 250; k++) {
+      let px = p.random(p.width);
+      let py = p.random(p.height);
+      p.stroke(p.random(80,180), p.random(20,60));
+      p.strokeWeight(p.random(0.5,1.2));
+      p.point(px, py);
+    }
+  };
+});
+  
 // ── ART 6 · DISCORD · "Particle Field — Connection"
 // Dots connected by threads when close — network, community, proximity
 makeSketch('art-discord', function(p) {
